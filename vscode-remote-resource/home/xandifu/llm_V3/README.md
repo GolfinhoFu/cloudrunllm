@@ -244,4 +244,4 @@ Projeto interno - Anima Educação
 
 **Versão**: 3.0  
 **Última atualização**: Outubro 2025  
-**Autor**: Desenvolvido com Cline AI Assistant
+**Autor**: Alexandre
