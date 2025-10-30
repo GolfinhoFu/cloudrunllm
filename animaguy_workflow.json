@@ -1,0 +1,345 @@
+{
+  "name": "AnimaGuy Chat Assistant",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "animaguy-chat",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "311e7417-2309-425b-a19b-a95e7c1d4a8e",
+      "name": "Start",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.body.session_id }}",
+              "operation": "isEmpty"
+            }
+          ]
+        }
+      },
+      "id": "e2c34d5b-1358-4770-8b1b-7071e6559385",
+      "name": "Check for Session ID",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "item.sessionId = $json.body.session_id;\nreturn item;"
+      },
+      "id": "b1a2c3d4-e5f6-a7b8-c9d0-e1f2a3b4c5d6",
+      "name": "Set Existing Session ID",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        680,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const { v4: uuidv4 } = require('uuid');\nitem.sessionId = uuidv4();\nreturn item;"
+      },
+      "id": "0f6a27e0-2621-4d1a-9694-8848f078314e",
+      "name": "Generate Session ID",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        680,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "mergeByIndex"
+      },
+      "id": "f1e2d3c4-b5a6-9876-5432-10fedcba9876",
+      "name": "Merge",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2,
+      "position": [
+        900,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "[URL_DO_SEU_SERVIÇO_RAG]",
+        "options": {},
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "query",
+              "value": "={{ $json.body.text }}"
+            }
+          ]
+        }
+      },
+      "id": "6a382e75-68f7-43f1-b684-25e40e6ed275",
+      "name": "Get RAG Context",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1120,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "collection": "sessions",
+        "documentId": "={{ $json.sessionId }}",
+        "options": {}
+      },
+      "id": "1d440857-4b13-4e4b-972d-868779b5d4e1",
+      "name": "Get Session History",
+      "type": "n8n-nodes-base.firestore",
+      "typeVersion": 1,
+      "position": [
+        1340,
+        300
+      ],
+      "credentials": {
+        "googleApi": {
+          "id": "[YOUR_GOOGLE_CREDENTIAL_ID]",
+          "name": "Google Service Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const ragContext = $node[\\\"Get RAG Context\\\"].json.context || \\\"Nenhum contexto adicional encontrado.\\\";\nconst promptTemplate = `Você é Animaguy, um assistente prestativo e amigável que ajuda usuários a melhorarem seus discursos de 'pitch' e desenvolverem suas ideias de negócio.\\n\\nSuas respostas devem ser:\\n- Curtas e diretas (máximo 3-4 parágrafos)\\n- Casuais e encorajadoras\\n- Práticas e acionáveis\\n- Baseadas em boas práticas de empreendedorismo\\n\\nUse o seguinte CONTEXTO da nossa base de conhecimento para embasar sua resposta. Se o contexto não for relevante para a pergunta, responda normalmente com base no seu conhecimento geral sobre empreendedorismo, inovação e pitches.\\n\\nCONTEXTO DA BASE DE CONHECIMENTO:\\n{context}\\n\\nAgora responda à pergunta do usuário de forma prestativa e encorajadora.`;\n\nitem.systemPrompt = promptTemplate.replace('{context}', ragContext);\n\nconst firestoreData = $node[\\\"Get Session History\\\"].json;\nlet history = [];\nif (firestoreData && firestoreData.history) {\n  history = firestoreData.history;\n}\n\nitem.history = history;\n\nreturn item;"
+      },
+      "id": "4b6339a9-3011-4770-9833-281b36bb0363",
+      "name": "Build Prompt and History",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1560,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "model": "gemini-1.5-flash",
+        "prompt": "={{ $json.body.text }}",
+        "otherOptions": {
+          "system": "={{ $node[\\\"Build Prompt and History\\\"].json.systemPrompt }}",
+          "history": "={{ $node[\\\"Build Prompt and History\\\"].json.history.map(item => ({ role: item.role, parts: [{ text: item.parts[0] }] })) }}"
+        }
+      },
+      "id": "e0a05e23-dfa3-4b68-b3f4-345f448e895c",
+      "name": "Generate AnimaGuy Response",
+      "type": "n8n-nodes-base.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        1780,
+        300
+      ],
+      "credentials": {
+        "googleGeminiApi": {
+          "id": "[YOUR_GOOGLE_CREDENTIAL_ID]",
+          "name": "Google Service Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const history = $node[\\\"Build Prompt and History\\\"].json.history;\n\nhistory.push({\n  role: \\\"user\\\",\n  parts: [$json.body.text]\n});\n\nhistory.push({\n  role: \\\"model\\\",\n  parts: [$json.text] \n});\n\nitem.updatedHistory = { \\\"history\\\": history };\n\nreturn item;"
+      },
+      "id": "27878939-93e1-4541-b209-7773229cd709",
+      "name": "Update History",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2000,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "set",
+        "collection": "sessions",
+        "documentId": "={{ $json.sessionId }}",
+        "data": "={{ $node[\\\"Update History\\\"].json.updatedHistory }}",
+        "options": {
+          "merge": true
+        }
+      },
+      "id": "3587b640-c20e-4f24-9b09-a719c8f61563",
+      "name": "Save Session History",
+      "type": "n8n-nodes-base.firestore",
+      "typeVersion": 1,
+      "position": [
+        2220,
+        300
+      ],
+      "credentials": {
+        "googleApi": {
+          "id": "[YOUR_GOOGLE_CREDENTIAL_ID]",
+          "name": "Google Service Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "data": "={{ JSON.stringify({ \\\"answer\\\": $node[\\\"Generate AnimaGuy Response\\\"].json.text, \\\"session_id\\\": $json.sessionId }) }}",
+        "options": {
+          "contentType": "application/json"
+        }
+      },
+      "id": "c1f1f516-0e9e-4a65-b7b5-0c7637f54c9a",
+      "name": "Send Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        2440,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Check for Session ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check for Session ID": {
+      "main": [
+        [
+          {
+            "node": "Generate Session ID",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set Existing Session ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Existing Session ID": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Session ID": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Get RAG Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get RAG Context": {
+      "main": [
+        [
+          {
+            "node": "Get Session History",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Session History": {
+      "main": [
+        [
+          {
+            "node": "Build Prompt and History",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Prompt and History": {
+      "main": [
+        [
+          {
+            "node": "Generate AnimaGuy Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate AnimaGuy Response": {
+      "main": [
+        [
+          {
+            "node": "Update History",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update History": {
+      "main": [
+        [
+          {
+            "node": "Save Session History",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Session History": {
+      "main": [
+        [
+          {
+            "node": "Send Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

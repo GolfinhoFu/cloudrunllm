@@ -1,0 +1,285 @@
+{
+  "name": "Pitch Analysis",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "pitch-analysis",
+        "responseMode": "usingRespondingWebhookNode",
+        "options": {}
+      },
+      "id": "a1b2c3d4-e5f6-7890-1234-567890abcdef",
+      "name": "Start Pitch Analysis",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "[URL_DO_SEU_SERVIÇO_RAG]",
+        "options": {},
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "query",
+              "value": "={{ $json.body.text || 'dicas de pitch para investidores' }}"
+            }
+          ]
+        }
+      },
+      "id": "b2c3d4e5-f6a7-8901-2345-67890abcdef1",
+      "name": "Get RAG Context for Pitch",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $binary.audio_file ? 'defined' : '' }}",
+              "operation": "equal",
+              "value2": "defined"
+            }
+          ]
+        }
+      },
+      "id": "c3d4e5f6-a7b8-9012-3456-7890abcdef23",
+      "name": "Check for Audio File",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        680,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const ragContext = $node[\\\"Get RAG Context for Pitch\\\"].json.context || \\\"Analise o pitch com base em suas melhores práticas.\\\";\nconst promptTemplate = `Atue como um painel de 4 investidores do programa Shark Tank. Analise o seguinte 'pitch' de negócio e forneça 4 respostas distintas, cada uma com uma personalidade de investidor diferente.\\n\\nIMPORTANTE: Use o CONTEXTO abaixo da nossa base de conhecimento (dicas de pitch, templates, melhores práticas) para enriquecer sua análise:\\n\\nCONTEXTO DA BASE DE CONHECIMENTO:\\n{context}\\n\\n---\\n\\nAs personalidades dos investidores são:\\n\\n1. **O Cético (Mr. Wonderful):**\\n   - Focado puramente nos números, métricas, valuation e se o negócio já dá lucro\\n   - Analisa viabilidade financeira e retorno sobre investimento\\n   - Geralmente diz \\\"estou fora\\\" se os números não fecham\\n   - Direto e sem rodeios\\n\\n2. **O Visionário (Mark Cuban):**\\n   - Interessado em tecnologia, escalabilidade e inovação\\n   - Analisa como a ideia pode mudar o mercado a longo prazo\\n   - Disposto a investir em potencial mesmo sem lucro imediato\\n   - Foca em disrupção e crescimento exponencial\\n\\n3. **A Rainha do Varejo (Lori Greiner):**\\n   - Focada no produto em si e seu apelo para as massas\\n   - Analisa se é um \\\"herói ou um zero\\\"\\n   - Pensa em como venderia nas prateleiras das grandes lojas\\n   - Adora produtos inovadores com apelo visual\\n\\n4. **O Tubarão Amigável (Daymond John):**\\n   - Focado na marca, no marketing e na paixão do empreendedor\\n   - Gosta de histórias autênticas e de se conectar com o fundador\\n   - Valoriza empreendedores que \\\"vestem a camisa\\\"\\n   - Analisa posicionamento de marca e identidade\\n\\n---\\n\\nREGRAS IMPORTANTES:\\n\\n1. Cada resposta deve ser uma declaração direta e conclusiva\\n2. Termine SEMPRE com a decisão final: \\\"Estou dentro.\\\" ou \\\"Estou fora.\\\"\\n3. NÃO faça perguntas ao empreendedor\\n4. NÃO use emojis (compatibilidade com UI)\\n5. Adicione uma PONTUAÇÃO (score) de 0.0 a 10.0 com uma casa decimal para cada investidor\\n6. O score deve refletir a qualidade do pitch do ponto de vista do investidor\\n\\n---\\n\\nFormate sua resposta EXATAMENTE como um objeto JSON, sem nenhum texto antes ou depois:\\n\\n{{\\n  \\\"investor_feedbacks\\\": [\\n    {{\\n      \\\"investor\\\": \\\"O Cético\\\",\\n      \\\"persona\\\": \\\"Focado em números e métricas financeiras\\\",\\n      \\\"investorAnswer\\\": \\\"Sua análise detalhada aqui... Estou fora.\\\",\\n      \\\"score\\\": 7.5\\n    }},\\n    {{\\n      \\\"investor\\\": \\\"O Visionário\\\",\\n      \\\"persona\\\": \\\"Interessado em tecnologia e escalabilidade\\\",\\n      \\\"investorAnswer\\\": \\\"Sua análise detalhada aqui... Estou dentro.\\\",\\n      \\\"score\\\": 8.2\\n    }},\\n    {{\\n      \\\"investor\\\": \\\"A Rainha do Varejo\\\",\\n      \\\"persona\\\": \\\"Focada no produto e apelo comercial\\\",\\n      \\\"investorAnswer\\\": \\\"Sua análise detalhada aqui... Estou fora.\\\",\\n      \\\"score\\\": 6.8\\n    }},\\n    {{\\n      \\\"investor\\\": \\\"O Tubarão Amigável\\\",\\n      \\\"persona\\\": \\\"Focado em marca e paixão do empreendedor\\\",\\n      \\\"investorAnswer\\\": \\\"Sua análise detalhada aqui... Estou dentro.\\\",\\n      \\\"score\\\": 9.0\\n    }}\\n  ]\\n}}\\n\\n---\\n\\nO PITCH A SER ANALISADO:\\n{pitch_content}`;\n\nitem.prompt = promptTemplate.replace('{context}', ragContext).replace('{pitch_content}', '(Áudio do pitch anexado)');\nreturn item;"
+      },
+      "id": "d4e5f6a7-b8c9-0123-4567-890abcdef34",
+      "name": "Build Audio Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        900,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "model": "gemini-1.5-pro",
+        "prompt": "={{ $node[\\\"Build Audio Prompt\\\"].json.prompt }}",
+        "attachments": {
+          "attachments": [
+            {
+              "input": "={{ $binary.audio_file }}"
+            }
+          ]
+        }
+      },
+      "id": "e5f6a7b8-c9d0-1234-5678-90abcdef45",
+      "name": "Analyze Audio Pitch",
+      "type": "n8n-nodes-base.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        200
+      ],
+      "credentials": {
+        "googleGeminiApi": {
+          "id": "[YOUR_GOOGLE_CREDENTIAL_ID]",
+          "name": "Google Service Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const ragContext = $node[\\\"Get RAG Context for Pitch\\\"].json.context || \\\"Analise o pitch com base em suas melhores práticas.\\\";\nconst promptTemplate = `Atue como um painel de 4 investidores do programa Shark Tank. Analise o seguinte 'pitch' de negócio e forneça 4 respostas distintas, cada uma com uma personalidade de investidor diferente.\\n\\nIMPORTANTE: Use o CONTEXTO abaixo da nossa base de conhecimento (dicas de pitch, templates, melhores práticas) para enriquecer sua análise:\\n\\nCONTEXTO DA BASE DE CONHECIMENTO:\\n{context}\\n\\n---\\n\\nAs personalidades dos investidores são:\\n\\n1. **O Cético (Mr. Wonderful):**\\n   - Focado puramente nos números, métricas, valuation e se o negócio já dá lucro\\n   - Analisa viabilidade financeira e retorno sobre investimento\\n   - Geralmente diz \\\"estou fora\\\" se os números não fecham\\n   - Direto e sem rodeios\\n\\n2. **O Visionário (Mark Cuban):**\\n   - Interessado em tecnologia, escalabilidade e inovação\\n   - Analisa como a ideia pode mudar o mercado a longo prazo\\n   - Disposto a investir em potencial mesmo sem lucro imediato\\n   - Foca em disrupção e crescimento exponencial\\n\\n3. **A Rainha do Varejo (Lori Greiner):**\\n   - Focada no produto em si e seu apelo para as massas\\n   - Analisa se é um \\\"herói ou um zero\\\"\\n   - Pensa em como venderia nas prateleiras das grandes lojas\\n   - Adora produtos inovadores com apelo visual\\n\\n4. **O Tubarão Amigável (Daymond John):**\\n   - Focado na marca, no marketing e na paixão do empreendedor\\n   - Gosta de histórias autênticas e de se conectar com o fundador\\n   - Valoriza empreendedores que \\\"vestem a camisa\\\"\\n   - Analisa posicionamento de marca e identidade\\n\\n---\\n\\nREGRAS IMPORTANTES:\\n\\n1. Cada resposta deve ser uma declaração direta e conclusiva\\n2. Termine SEMPRE com a decisão final: \\\"Estou dentro.\\\" ou \\\"Estou fora.\\\"\\n3. NÃO faça perguntas ao empreendedor\\n4. NÃO use emojis (compatibilidade com UI)\\n5. Adicione uma PONTUAÇÃO (score) de 0.0 a 10.0 com uma casa decimal para cada investidor\\n6. O score deve refletir a qualidade do pitch do ponto de vista do investidor\\n\\n---\\n\\nFormate sua resposta EXATAMENTE como um objeto JSON, sem nenhum texto antes ou depois:\\n\\n{{\\n  \\\"investor_feedbacks\\\": [\\n    {{\\n      \\\"investor\\\": \\\"O Cético\\\",\\n      \\\"persona\\\": \\\"Focado em números e métricas financeiras\\\",\\n      \\\"investorAnswer\\\": \\\"Sua análise detalhada aqui... Estou fora.\\\",\\n      \\\"score\\\": 7.5\\n    }},\\n    {{\\n      \\\"investor\\\": \\\"O Visionário\\\",\\n      \\\"persona\\\": \\\"Interessado em tecnologia e escalabilidade\\\",\\n      \\\"investorAnswer\\\": \\\"Sua análise detalhada aqui... Estou dentro.\\\",\\n      \\\"score\\\": 8.2\\n    }},\\n    {{\\n      \\\"investor\\\": \\\"A Rainha do Varejo\\\",\\n      \\\"persona\\\": \\\"Focada no produto e apelo comercial\\\",\\n      \\\"investorAnswer\\\": \\\"Sua análise detalhada aqui... Estou fora.\\\",\\n      \\\"score\\\": 6.8\\n    }},\\n    {{\\n      \\\"investor\\\": \\\"O Tubarão Amigável\\\",\\n      \\\"persona\\\": \\\"Focado em marca e paixão do empreendedor\\\",\\n      \\\"investorAnswer\\\": \\\"Sua análise detalhada aqui... Estou dentro.\\\",\\n      \\\"score\\\": 9.0\\n    }}\\n  ]\\n}}\\n\\n---\\n\\nO PITCH A SER ANALISADO:\\n{pitch_content}`;\n\nconst pitchContent = $json.body.text;\nitem.prompt = promptTemplate.replace('{context}', ragContext).replace('{pitch_content}', pitchContent);\nreturn item;"
+      },
+      "id": "f6a7b8c9-d0e1-2345-6789-0abcdef567",
+      "name": "Build Text Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        900,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "model": "gemini-1.5-flash",
+        "prompt": "={{ $node[\\\"Build Text Prompt\\\"].json.prompt }}"
+      },
+      "id": "a7b8c9d0-e1f2-3456-7890-1bcdef67890",
+      "name": "Analyze Text Pitch",
+      "type": "n8n-nodes-base.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        400
+      ],
+      "credentials": {
+        "googleGeminiApi": {
+          "id": "[YOUR_GOOGLE_CREDENTIAL_ID]",
+          "name": "Google Service Account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "id": "b8c9d0e1-f2a3-4567-8901-cdef7890123",
+      "name": "Merge",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2,
+      "position": [
+        1340,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "let geminiOutput = $json.text;\n\nif (geminiOutput.includes('```json')) {\n  geminiOutput = geminiOutput.split('```json')[1].split('```')[0].trim();\n}\n\ntry {\n  item.parsedJson = JSON.parse(geminiOutput);\n} catch (error) {\n  item.parsedJson = { \\\"error\\\": \\\"Falha ao analisar a resposta do modelo.\\\", \\\"raw_output\\\": geminiOutput };\n}\n\nreturn item;"
+      },
+      "id": "c9d0e1f2-a3b4-5678-9012-def89012345",
+      "name": "Parse JSON Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1560,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "data": "={{ JSON.stringify($node[\\\"Parse JSON Response\\\"].json.parsedJson) }}",
+        "options": {
+          "contentType": "application/json"
+        }
+      },
+      "id": "d0e1f2a3-b4c5-6789-0123-ef901234567",
+      "name": "Send Pitch Feedback",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1780,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Start Pitch Analysis": {
+      "main": [
+        [
+          {
+            "node": "Get RAG Context for Pitch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get RAG Context for Pitch": {
+      "main": [
+        [
+          {
+            "node": "Check for Audio File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check for Audio File": {
+      "main": [
+        [
+          {
+            "node": "Build Audio Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Text Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Audio Prompt": {
+      "main": [
+        [
+          {
+            "node": "Analyze Audio Pitch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze Audio Pitch": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Text Prompt": {
+      "main": [
+        [
+          {
+            "node": "Analyze Text Pitch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze Text Pitch": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Parse JSON Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse JSON Response": {
+      "main": [
+        [
+          {
+            "node": "Send Pitch Feedback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
