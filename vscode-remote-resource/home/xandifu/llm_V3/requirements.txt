@@ -1,0 +1,38 @@
+# Framework web para criar a API e os endpoints HTTP
+Flask==3.0.0
+
+# Servidor de produção WSGI para rodar a aplicação Flask de forma robusta
+gunicorn==21.2.0
+
+# Biblioteca cliente oficial do Google para interagir com a API do Gemini (LLM)
+google-generativeai==0.3.2
+
+# Biblioteca do Google Cloud para armazenamento
+google-cloud-storage==2.10.0
+
+# Biblioteca do Google Cloud para Firestore (histórico de sessões)
+google-cloud-firestore==2.13.1
+
+# Versão compatível do protobuf
+protobuf==4.25.1
+
+# Biblioteca para busca de similaridade em vetores (para o RAG)
+faiss-cpu==1.7.4
+
+# Biblioteca para operações numéricas (usada com FAISS)
+numpy==1.24.3
+
+# Biblioteca para leitura de documentos PDF
+pypdf==3.17.1
+
+# Biblioteca para leitura de documentos Word
+python-docx==1.1.0
+
+# Biblioteca para leitura de documentos PowerPoint
+python-pptx==0.6.23
+
+# Biblioteca para manipulação de imagens
+Pillow==10.1.0
+
+# Biblioteca para requisições HTTP (opcional)
+requests==2.31.0

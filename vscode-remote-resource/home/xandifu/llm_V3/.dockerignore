@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+*.egg-info/
+dist/
+build/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Logs
+*.log
+
+# Arquivos temporários
+*.tmp
+*.bak
+
+# Arquivos de teste
+tests/
+test_*.py
+*_test.py
+
+# Documentação local
+docs/
+
+# Knowledge base local (será baixado do GCS)
+knowledge_base/*.bin
+knowledge_base/*.json
+
+# Zip files
+*.zip
